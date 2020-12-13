@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <UserSecretsId>dc98d62c-3792-4a7c-aff6-806d0b9329e6</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
 
 </Project>
