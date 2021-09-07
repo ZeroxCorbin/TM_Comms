@@ -59,7 +59,7 @@ namespace TM_Comms
         public bool ParseMessage(string message)
         {
             //Server Response
-            if (!Regex.IsMatch(message, @"^[$].+\*[0-9A-F][0-9A-F]"))
+            if (!Regex.IsMatch(message, @"^[$](?s)(.*?)\*[0-9A-F][0-9A-F]"))
                 return false;
 
             Match match;
@@ -76,7 +76,7 @@ namespace TM_Comms
                 string content = Regex.Replace(message, @"^[$]\w*,\w*,\w*,\w*,", "");
                 Content = Regex.Replace(content, @",[*][0-9A-Z][0-9A-Z]*", "");
 
-                match = Regex.Match(message, @"^[$]\w*,\w*,\w*,\w*,\w*,");
+                match = Regex.Match(message, @"^[$]\w*,\w*,\w*,\w*,");
             }
 
             if (match.Success)
@@ -140,7 +140,41 @@ namespace TM_Comms
         public Modes Mode { get; set; } = Modes.STRING;
 
         public string Content { get; set; } = string.Empty;
+        public string GetValue(string name)
+        {
+            if (Header == Headers.CPERR) return string.Empty;
 
+            int loc = Content.IndexOf(name);
+            int start = -1, end = -1;
+
+            if (loc > -1)
+            {
+                if(Mode == Modes.STRING)
+                {
+                    start = Content.IndexOf('=', loc + name.Length) + 1;
+                    string t1 = Content.Substring(start);
+                    if (start > -1)
+                        end = Content.IndexOf('\n', start) - 1;
+                    else
+                        return string.Empty;
+                }
+                else if (Mode == Modes.JSON)
+                {
+                    start = Content.IndexOf(':', loc + name.Length) + 1;
+                    if (start > -1)
+                        end = Content.IndexOf('}', start) - 1;
+                    else
+                        return string.Empty;
+                }
+                else
+                    return string.Empty;
+
+                return Content.Substring(start, end - start).Trim('[',']','{','}');
+            }
+            else
+                return string.Empty;
+
+        }
         private string Data => $"{TransactionID}{Separator}{Mode:D}{Separator}{Content}";
 
         public byte Checksum => CalCheckSum();
