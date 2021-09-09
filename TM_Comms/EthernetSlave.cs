@@ -9,6 +9,7 @@ namespace TM_Comms
 {
     public partial class EthernetSlave
     {
+        public static int Port { get; } = 5891;
         public enum Headers
         {
             TMSVR, //External Script
