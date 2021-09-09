@@ -207,38 +207,6 @@ namespace TM_Comms
             }
         }
 
-        public class Pose : Space
-        {
-            public double X => base[0];
-            public double Y => base[1];
-            public double Z => base[2];
-            public double Qx => base[3];
-            public double Qy => base[4];
-            public double Qz => base[5];
-            public double Qw => base[6];
-            public double Config => base[7];
-
-            public Pose(double x_POS_m, double y_POS_m, double z_POS_m, double x_QUAT, double y_QUAT, double z_QUAT, double w_QUAT, double config)
-            {
-                Clear();
-                Add(x_POS_m);
-                Add(y_POS_m);
-                Add(z_POS_m);
-                Add(x_QUAT);
-                Add(y_QUAT);
-                Add(z_QUAT);
-                Add(w_QUAT);
-                Add(config);
-                base.Type = MType.POSE;
-            }
-            public Pose(Pose pose)
-            {
-                Clear();
-                AddRange(pose);
-                Type = MType.POSE;
-            }
-        }
-
         public class Joint : Space
         {
             public Joint(double j1, double j2, double j3, double j4, double j5, double j6, double config)
