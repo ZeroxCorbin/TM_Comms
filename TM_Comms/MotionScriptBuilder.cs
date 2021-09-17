@@ -4,106 +4,63 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using TM_Comms;
 
 namespace TM_Comms
 {
     public partial class MotionScriptBuilder
     {
-        public const double MAX_BLEND_MM = 10.0;
-        public const double MIN_DISTANCE_MM = 0.05;
-        public const double MAX_VELOCITY_MMS = 2000.0;
-        public const int MAX_ACCEL_MS = 200;
-
-        public List<MoveStep> Moves;
-        public MotionScriptBuilder()
+        public static Dictionary<string, List<string>> MoveTypes_DataFormats = new Dictionary<string, List<string>>()
         {
-            Moves = new List<MoveStep>();
-        }
+            { "PTP", new List<string>() { "CPP", "JPP" } },
+            { "Line", new List<string>() { "CPP", "CPR", "CAP", "CAR" } },
+            { "PLine", new List<string>() { "CAP", "JAP" } },
+        };
 
-        public MotionScriptBuilder(List<MoveStep> moves)
-        {
-            Moves = moves;
-        }
 
-        public VerifyResult VerifyBlend()
-        {
-            VerifyResult vr = VerifyResult.OK;
 
-            int i = 0;
-            MoveStep prev = null;
-            foreach (MoveStep ms in Moves)
+        public class MoveStep
+        {  
+            public string MoveType { get; set; }
+            public string DataFormat { get; set; } //CPP, JPP, etc...
+
+            public Position Position { get; set; }
+            public string Velocity { get; set; } 
+            public string Accel { get; set; }
+            public string Blend { get; set; }
+            public bool Precision { get; set; }
+
+            public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+            public string MoveCommand(int posNum, bool initFloat = true) =>  $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
+                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+
+            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend)
             {
-                if (i == 0)
-                {
-                    ms.Blent_pct = 0;
-                    prev = ms;
-                    i++;
-                    continue;
-                }
+                MoveType = moveType;
 
-                if (prev.Move_type != ms.Move_type)
-                {
-                    if (prev.Blent_pct > 0)
-                    {
-                        prev.Blent_pct = 0;
-                        vr = VerifyResult.UPDATED;
-                    }
-                }
-
-                if (prev.Where.Type == Space.MType.EPOSE & ms.Where.Type == Space.MType.EPOSE)
-                {
-                    double dist = Distance(prev.Where, ms.Where);
-                    if (dist < MAX_BLEND_MM)
-                    {
-                        if (dist <= MIN_DISTANCE_MM)
-                        {
-                            vr = VerifyResult.FAILED;
-                            break;
-                        }
-
-                        int blend = (int)(dist / MAX_BLEND_MM) * 100;
-                        if (ms.Blent_pct > blend)
-                        {
-                            ms.Blent_pct = blend;
-                            vr = VerifyResult.UPDATED;
-                        }
-
-                    }
-                }
-
-                prev = ms;
+                DataFormat = dataFormat; 
+                Position = position;
+                Accel = accel;
+                Velocity = velocity;
+                Blend = blend;
             }
-            return vr;
         }
 
-        public MotionResult Move(List<MoveStep> blends)
-        {
-            return MotionResult.FAILURE;
-        }
+
+        public List<MoveStep> Moves = new List<MoveStep>();
 
         public ListenNode BuildScriptData(bool addScriptExit, bool initVariables)
         {
             StringBuilder sb = new StringBuilder();
+            sb.Append("\r\n");
+
             int step = 1;
             foreach (MoveStep ms in Moves)
-            {
-                if (ms.Move_type == MotionType.LINEAR)
-                {
-                    if (ms.Where.Type == Space.MType.EPOSE)
-                        sb.Append(initVariables ? $"float[] {GetPLineCart(ms, step++)}" : GetPLineCart(ms, step++));
-
-                    if (ms.Where.Type == Space.MType.JOINTS)
-                        sb.Append(initVariables ? $"float[] {GetPLineJoint(ms, step++)}" : GetPLineJoint(ms, step++));
-                }
-
-                if (ms.Move_type == MotionType.JOINT)
-                {
-                    if (ms.Where.Type == Space.MType.EPOSE)
-                        sb.Append(initVariables ? $"float[] {GetPTPCart(ms, step++)}" : GetPTPCart(ms, step++));
-
-                    if (ms.Where.Type == Space.MType.JOINTS)
-                        sb.Append(initVariables ? $"float[] {GetPTPJoint(ms, step++)}" : GetPTPJoint(ms, step++));
-                }
+            { 
+                if(!initVariables)
+                    sb.Append(ms.MoveCommand());
+                else
+                    sb.Append(ms.MoveCommand(step++, initVariables));
             }
 
             sb.Append(GetQueueTag(1));
@@ -114,102 +71,160 @@ namespace TM_Comms
             return new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT);
         }
 
-        private string GetPLineCart(MoveStep ms, int pos) => $"targetP{pos}={{{ms.Where[0]},{ms.Where[1]},{ms.Where[2]},{ms.Where[3]},{ms.Where[4]},{ms.Where[5]}}}\r\n" +
-                                                             $"Line(\"CPP\",targetP{pos},{ms.Velocity_pct},{ms.Acceleration_ms},{ms.Blent_pct},true)\r\n";
-        private string GetPLineJoint(MoveStep ms, int pos) => $"targetP{pos}={{{ms.Where[0]},{ms.Where[1]},{ms.Where[2]},{ms.Where[3]},{ms.Where[4]},{ms.Where[5]}}}\r\n" +
-                                                              $"Line(\"JPP\",targetP{pos},{ms.Velocity_pct},{ms.Acceleration_ms},{ms.Blent_pct},true)\r\n";
-        private string GetPTPCart(MoveStep ms, int pos) => $"targetP{pos}={{{ms.Where[0]},{ms.Where[1]},{ms.Where[2]},{ms.Where[3]},{ms.Where[4]},{ms.Where[5]}}}\r\n" +
-                                                           $"PTP(\"CPP\",targetP{pos},{ms.Velocity_pct},{ms.Acceleration_ms},{ms.Blent_pct},true)\r\n";
-        private string GetPTPJoint(MoveStep ms, int pos) => $"targetP{pos}={{{ms.Where[0]},{ms.Where[1]},{ms.Where[2]},{ms.Where[3]},{ms.Where[4]},{ms.Where[5]}}}\r\n" +
-                                                            $"PTP(\"JPP\",targetP{pos},{ms.Velocity_pct},{ms.Acceleration_ms},{ms.Blent_pct},true)\r\n";
         private string GetQueueTag(int num) => $"QueueTag({num})\r\n";
         private string GetScriptExit() => $"ScriptExit()\r\n";
-        public virtual AbortCondResult Abort()
-        {
-            return AbortCondResult.CONTINUE;
-        }
 
-        private double Distance(Space p1, Space p2) => Math.Pow((Math.Pow(p2[0] - p1[0], 2) + Math.Pow(p2[1] - p1[1], 2) + Math.Pow(p2[3] - p1[3], 2)) * 1.0, 0.5);
+        //public const double MAX_BLEND_MM = 10.0;
+        //public const double MIN_DISTANCE_MM = 0.05;
+        //public const double MAX_VELOCITY_MMS = 2000.0;
+        //public const int MAX_ACCEL_MS = 200;
+        //public VerifyResult VerifyBlend()
+        //{
+        //    VerifyResult vr = VerifyResult.OK;
+
+        //    //int i = 0;
+        //    //MoveStep prev = null;
+        //    //foreach (MoveStep ms in Moves)
+        //    //{
+        //    //    if (i == 0)
+        //    //    {
+        //    //        ms.Blent_pct = 0;
+        //    //        prev = ms;
+        //    //        i++;
+        //    //        continue;
+        //    //    }
+
+        //    //    if (prev.Move_type != ms.Move_type)
+        //    //    {
+        //    //        if (prev.Blent_pct > 0)
+        //    //        {
+        //    //            prev.Blent_pct = 0;
+        //    //            vr = VerifyResult.UPDATED;
+        //    //        }
+        //    //    }
+
+        //    //    if (prev.Where.Type == Position.MType.EPOSE & ms.Where.Type == Position.MType.EPOSE)
+        //    //    {
+        //    //        double dist = Distance(prev.Where, ms.Where);
+        //    //        if (dist < MAX_BLEND_MM)
+        //    //        {
+        //    //            if (dist <= MIN_DISTANCE_MM)
+        //    //            {
+        //    //                vr = VerifyResult.FAILED;
+        //    //                break;
+        //    //            }
+
+        //    //            int blend = (int)(dist / MAX_BLEND_MM) * 100;
+        //    //            if (ms.Blent_pct > blend)
+        //    //            {
+        //    //                ms.Blent_pct = blend;
+        //    //                vr = VerifyResult.UPDATED;
+        //    //            }
+
+        //    //        }
+        //    //    }
+
+        //    //    prev = ms;
+        //    //}
+        //    return vr;
+        //}
+
+
+
+
+
+        //private double Distance(Position p1, Position p2) => Math.Pow((Math.Pow(p2[0] - p1[0], 2) + Math.Pow(p2[1] - p1[1], 2) + Math.Pow(p2[3] - p1[3], 2)) * 1.0, 0.5);
 
     }
 
     public partial class MotionScriptBuilder
     {
-        public enum MotionResult
+        public class Position : List<string>
         {
-            SUCCESS = 0,        //The motion reached its destination.
-            FAILURE = -1,       //The motion did not reach its destination, but no indication to cause.
-            ABORT_COND = -2,    //The motion did not reach its destination, due to the abort callback returning `AbortCondResult::ABORT`
-            JOINT_LIMIT = -3,   //The motion did not reach its destination, due to one or more joints reaching the limit in their range of motion.
-            TIMEOUT = -4        //The motion did not reach its destination, due to robot not making a timely reply.
-        }
-        public enum AbortCondResult
-        {
-            PAUSE = -1,     //Motion of the robot shall cease. However the function initiating the motion shall not return. Upon the next `CONTINUE` the motion shall resume.
-            CONTINUE = 0,   //do not interrupt the motion of the robot
-            ABORT = 1       //Motion of the robot shall cease. The function initiating the motion shall return `MotionResult::ABORT_COND`.
-        }
+            public string V1 { get { return base[0]; } set { base[0] = value; } }
+            public string V2 { get { return base[1]; } set { base[1] = value; } }
+            public string V3 { get { return base[2]; } set { base[2] = value; } }
+            public string V4 { get { return base[3]; } set { base[3] = value; } }
+            public string V5 { get { return base[4]; } set { base[4] = value; } }
+            public string V6 { get { return base[5]; } set { base[5] = value; } }
 
-        public enum MotionType
-        {
-            JOINT = 1,
-            LINEAR = 2,
-            CIRCULAR = 3
-        }
-
-        public enum VerifyResult
-        {
-            OK = 0,         //Validated w/o changes
-            UPDATED = 1,    //Values updated (specific to blend, velocity?)
-            FAILED = -1    //Didn't validate, couldn't update (i.e unsupported move type passed)
-        }
-
-        public class Space : List<double>
-        {
+            public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}"; 
             public enum MType
             {
-                POSE = 0,
-                JOINTS = 1,
-                EPOSE = 2
+                CARTESIAN = 0,
+                JOINT = 1,
             }
 
             public MType Type { get; set; }
-        }
 
-        public class CPose : Space
-        {
-            public double X { get { return base[0]; } set { base[0] = value; } }
-            public double Y { get { return base[1]; } set { base[1] = value; } }
-            public double Z { get { return base[2]; } set { base[2] = value; } }
-            public double Yaw { get { return base[3]; } set { base[3] = value; } }
-            public double Pitch { get { return base[4]; } set { base[4] = value; } }
-            public double Roll { get { return base[5]; } set { base[5] = value; } }
-            public double Config { get { return base[6]; } set { base[6] = value; } }
-
-            public CPose() { Clear(); }
-            public CPose(double x_POS_m, double y_POS_m, double z_POS_m, double yaw, double pitch, double roll, double config)
+            public Position()
             {
-                Clear();
-                Add(x_POS_m);
-                Add(y_POS_m);
-                Add(z_POS_m);
-                Add(yaw);
-                Add(pitch);
-                Add(roll);
-                Add(config);
-                base.Type = MType.EPOSE;
+
             }
-            public CPose(CPose pose)
+            public Position(string pos)
             {
+                string[] spl = pos.Split(',');
                 Clear();
-                AddRange(pose);
-                Type = MType.EPOSE;
+                Add(spl[0]);
+                Add(spl[1]);
+                Add(spl[2]);
+                Add(spl[3]);
+                Add(spl[4]);
+                Add(spl[5]);
             }
         }
 
-        public class Joint : Space
+        public class Cartesian : Position
         {
-            public Joint(double j1, double j2, double j3, double j4, double j5, double j6, double config)
+            public string X { get { return base[0]; } set { base[0] = value; } }
+            public string Y { get { return base[1]; } set { base[1] = value; } }
+            public string Z { get { return base[2]; } set { base[2] = value; } }
+            public string RX { get { return base[3]; } set { base[3] = value; } }
+            public string RY { get { return base[4]; } set { base[4] = value; } }
+            public string RZ { get { return base[5]; } set { base[5] = value; } }
+
+            public Cartesian() { Clear(); }
+            public Cartesian(string x, string y, string z, string rX, string rY, string rZ)
+            {
+                Clear();
+                Add(x);
+                Add(y);
+                Add(z);
+                Add(rX);
+                Add(rY);
+                Add(rZ);
+                base.Type = MType.CARTESIAN;
+            }
+            public Cartesian(string pos)
+            {
+                string[] spl = pos.Split(',');
+                Clear();
+                Add(spl[0]);
+                Add(spl[1]);
+                Add(spl[2]);
+                Add(spl[3]);
+                Add(spl[4]);
+                Add(spl[5]);
+                base.Type = MType.CARTESIAN;
+            }
+            public Cartesian(Position Position)
+            {
+                Clear();
+                AddRange(Position);
+                Type = MType.CARTESIAN;
+            }
+        }
+
+        public class Joint : Position
+        {
+            public string J1 { get { return base[0]; } set { base[0] = value; } }
+            public string J2 { get { return base[1]; } set { base[1] = value; } }
+            public string J3 { get { return base[2]; } set { base[2] = value; } }
+            public string J4 { get { return base[3]; } set { base[3] = value; } }
+            public string J5 { get { return base[4]; } set { base[4] = value; } }
+            public string J6 { get { return base[5]; } set { base[5] = value; } }
+
+            public Joint(string j1, string j2, string j3, string j4, string j5, string j6)
             {
                 Clear();
                 Add(j1);
@@ -218,34 +233,29 @@ namespace TM_Comms
                 Add(j4);
                 Add(j5);
                 Add(j6);
-                Add(config);
-                Type = MType.JOINTS;
+                Type = MType.JOINT;
             }
-            public Joint(Joint joint)
+            public Joint(string pos)
+            {
+                string[] spl = pos.Split(',');
+                Clear();
+                Add(spl[0]);
+                Add(spl[1]);
+                Add(spl[2]);
+                Add(spl[3]);
+                Add(spl[4]);
+                Add(spl[5]);
+                Type = MType.JOINT;
+            }
+            public Joint(Position Position)
             {
                 Clear();
-                AddRange(joint);
-                Type = MType.JOINTS;
+                AddRange(Position);
+                Type = MType.JOINT;
             }
         }
 
-        public class MoveStep
-        {
-            public Space Where { get; set; }
-            public MotionType Move_type { get; set; }
-            public int Acceleration_ms { get; set; }
-            public int Velocity_pct { get; set; }
-            public int Blent_pct { get; set; }
 
-            public MoveStep(Space where, MotionType motionType, int velocity_pct, int accel_ms, int blend_pct)
-            {
-                Where = where;
-                Move_type = motionType;
-                Acceleration_ms = accel_ms;
-                Velocity_pct = velocity_pct;
-                Blent_pct = blend_pct;
-            }
-        }
     }
 
 
