@@ -9,45 +9,13 @@ using TM_Comms;
 namespace TM_Comms
 {
     public partial class MotionScriptBuilder
-    {
-        public static Dictionary<string, List<string>> MoveTypes_DataFormats = new Dictionary<string, List<string>>()
-        {
-            { "PTP", new List<string>() { "CPP", "JPP" } },
-            { "Line", new List<string>() { "CPP", "CPR", "CAP", "CAR" } },
-            { "PLine", new List<string>() { "CAP", "JAP" } },
-        };
+    {   
 
 
+        public List<MoveStep> Moves { get; set; }
 
-        public class MoveStep
-        {  
-            public string MoveType { get; set; }
-            public string DataFormat { get; set; } //CPP, JPP, etc...
-
-            public Position Position { get; set; }
-            public string Velocity { get; set; } 
-            public string Accel { get; set; }
-            public string Blend { get; set; }
-            public bool Precision { get; set; }
-
-            public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
-            public string MoveCommand(int posNum, bool initFloat = true) =>  $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
-                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
-
-            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend)
-            {
-                MoveType = moveType;
-
-                DataFormat = dataFormat; 
-                Position = position;
-                Accel = accel;
-                Velocity = velocity;
-                Blend = blend;
-            }
-        }
-
-
-        public List<MoveStep> Moves = new List<MoveStep>();
+        public MotionScriptBuilder() => Moves = new List<MoveStep>();
+        public MotionScriptBuilder(List<MoveStep> moves) => Moves = moves;
 
         public ListenNode BuildScriptData(bool addScriptExit, bool initVariables)
         {
@@ -139,119 +107,252 @@ namespace TM_Comms
 
     public partial class MotionScriptBuilder
     {
-        public class Position : List<string>
+        public enum MoveTypes
         {
-            public string V1 { get { return base[0]; } set { base[0] = value; } }
-            public string V2 { get { return base[1]; } set { base[1] = value; } }
-            public string V3 { get { return base[2]; } set { base[2] = value; } }
-            public string V4 { get { return base[3]; } set { base[3] = value; } }
-            public string V5 { get { return base[4]; } set { base[4] = value; } }
-            public string V6 { get { return base[5]; } set { base[5] = value; } }
+            PTP,
+            Line,
+            PLine
+
+        }
+
+        public enum DataFormats
+        {
+            CPP,
+            JPP,
+            CPR,
+            CAP,
+            CAR,
+            JAP
+        }
+
+        public static Dictionary<MoveTypes, List<DataFormats>> MoveTypes_DataFormats = new Dictionary<MoveTypes, List<DataFormats>>()
+        {
+            { MoveTypes.PTP, new List<DataFormats>() { DataFormats.CPP, DataFormats.JPP } },
+            { MoveTypes.Line, new List<DataFormats>() { DataFormats.CPP, DataFormats.CPR, DataFormats.CAP, DataFormats.CAR } },
+            { MoveTypes.PLine, new List<DataFormats>() { DataFormats.CAP, DataFormats.JAP } },
+        };
+
+        public class MoveStep
+        {  
+            public MoveTypes MoveType { get; set; }
+            public DataFormats DataFormat { get; set; } //CPP, JPP, etc...
+
+            public Position Position { get; set; }
+            public string Velocity { get; set; } 
+            public string Accel { get; set; }
+            public string Blend { get; set; }
+            public bool Precision { get; set; }
+
+            public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+            public string MoveCommand(int posNum, bool initFloat = true) =>  $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
+                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+
+            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend)
+            {
+                if(Enum.TryParse(moveType, out MoveTypes res))
+                    MoveType = res;
+                else
+                    MoveType = MoveTypes.PTP;
+
+                if (Enum.TryParse(dataFormat, out DataFormats format))
+                    DataFormat = format;
+                else
+                {
+                    if(position.Type == PositionTypes.CARTESIAN)
+                        DataFormat = DataFormats.CPP;
+                    else
+                        DataFormat = DataFormats.JPP;
+                }
+
+
+                Position = position;
+                Accel = accel;
+                Velocity = velocity;
+                Blend = blend;
+            }
+            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string velocity, string accel, string blend)
+            {
+                MoveType = moveType;
+                DataFormat = dataFormat;
+
+                Position = position;
+
+                Accel = accel;
+                Velocity = velocity;
+                Blend = blend;
+            }
+        }
+
+
+        public enum PositionTypes
+        {
+            CARTESIAN = 0,
+            JOINT = 1,
+        }
+
+        public class Position : List<double>
+        {
+            public double V1 { get { return base[0]; } set { base[0] = value; } }
+            public double V2 { get { return base[1]; } set { base[1] = value; } }
+            public double V3 { get { return base[2]; } set { base[2] = value; } }
+            public double V4 { get { return base[3]; } set { base[3] = value; } }
+            public double V5 { get { return base[4]; } set { base[4] = value; } }
+            public double V6 { get { return base[5]; } set { base[5] = value; } }
 
             public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}"; 
-            public enum MType
+
+
+            public PositionTypes Type { get; set; }
+
+            protected Position() { }
+
+            public Position(PositionTypes type)
             {
-                CARTESIAN = 0,
-                JOINT = 1,
+                for (int i = 0; i < 6; i++)
+                    Add(0);
+
+                Type = type;
             }
 
-            public MType Type { get; set; }
-
-            public Position()
-            {
-
-            }
             public Position(string pos)
             {
                 string[] spl = pos.Split(',');
-                Clear();
-                Add(spl[0]);
-                Add(spl[1]);
-                Add(spl[2]);
-                Add(spl[3]);
-                Add(spl[4]);
-                Add(spl[5]);
+
+                int cnt = 0;
+                foreach(string s in spl)
+                {
+                    double.TryParse(s, out double res);
+                    Add(res);
+                    cnt++;
+                }
+
+                for ( ; cnt <= 6; cnt++)
+                    Add(0);
             }
         }
 
         public class Cartesian : Position
         {
-            public string X { get { return base[0]; } set { base[0] = value; } }
-            public string Y { get { return base[1]; } set { base[1] = value; } }
-            public string Z { get { return base[2]; } set { base[2] = value; } }
-            public string RX { get { return base[3]; } set { base[3] = value; } }
-            public string RY { get { return base[4]; } set { base[4] = value; } }
-            public string RZ { get { return base[5]; } set { base[5] = value; } }
+            public double X { get { return base[0]; } set { base[0] = value; } }
+            public double Y { get { return base[1]; } set { base[1] = value; } }
+            public double Z { get { return base[2]; } set { base[2] = value; } }
+            public double RX { get { return base[3]; } set { base[3] = value; } }
+            public double RY { get { return base[4]; } set { base[4] = value; } }
+            public double RZ { get { return base[5]; } set { base[5] = value; } }
 
-            public Cartesian() { Clear(); }
-            public Cartesian(string x, string y, string z, string rX, string rY, string rZ)
+            public Cartesian() : base() { }
+
+            public Cartesian(double x, double y, double z, double rX, double rY, double rZ)
             {
-                Clear();
                 Add(x);
                 Add(y);
                 Add(z);
                 Add(rX);
                 Add(rY);
                 Add(rZ);
-                base.Type = MType.CARTESIAN;
+                base.Type = PositionTypes.CARTESIAN;
+            }
+
+            public Cartesian(string x, string y, string z, string rX, string rY, string rZ)
+            {
+                double.TryParse(x, out double res);
+                Add(res);
+
+                double.TryParse(y, out res);
+                Add(res);
+
+                double.TryParse(z, out res);
+                Add(res);
+
+                double.TryParse(rX, out res);
+                Add(res);
+
+                double.TryParse(rY, out res);
+                Add(res);
+
+                double.TryParse(rZ, out res);
+                Add(res);
+
+                base.Type = PositionTypes.CARTESIAN;
             }
             public Cartesian(string pos)
             {
                 string[] spl = pos.Split(',');
-                Clear();
-                Add(spl[0]);
-                Add(spl[1]);
-                Add(spl[2]);
-                Add(spl[3]);
-                Add(spl[4]);
-                Add(spl[5]);
-                base.Type = MType.CARTESIAN;
+
+                int cnt = 0;
+                foreach (string s in spl)
+                {
+                    double.TryParse(s, out double res);
+                    Add(res);
+                    cnt++;
+                }
+
+                for (; cnt <= 6; cnt++)
+                    Add(0);
+
+                base.Type = PositionTypes.CARTESIAN;
             }
             public Cartesian(Position Position)
             {
-                Clear();
                 AddRange(Position);
-                Type = MType.CARTESIAN;
+                base.Type = PositionTypes.CARTESIAN;
             }
         }
 
         public class Joint : Position
         {
-            public string J1 { get { return base[0]; } set { base[0] = value; } }
-            public string J2 { get { return base[1]; } set { base[1] = value; } }
-            public string J3 { get { return base[2]; } set { base[2] = value; } }
-            public string J4 { get { return base[3]; } set { base[3] = value; } }
-            public string J5 { get { return base[4]; } set { base[4] = value; } }
-            public string J6 { get { return base[5]; } set { base[5] = value; } }
+            public double J1 { get { return base[0]; } set { base[0] = value; } }
+            public double J2 { get { return base[1]; } set { base[1] = value; } }
+            public double J3 { get { return base[2]; } set { base[2] = value; } }
+            public double J4 { get { return base[3]; } set { base[3] = value; } }
+            public double J5 { get { return base[4]; } set { base[4] = value; } }
+            public double J6 { get { return base[5]; } set { base[5] = value; } }
+
+            public Joint() : base() { }
 
             public Joint(string j1, string j2, string j3, string j4, string j5, string j6)
             {
-                Clear();
-                Add(j1);
-                Add(j2);
-                Add(j3);
-                Add(j4);
-                Add(j5);
-                Add(j6);
-                Type = MType.JOINT;
+                double.TryParse(j1, out double res);
+                Add(res);
+
+                double.TryParse(j2, out res);
+                Add(res);
+
+                double.TryParse(j3, out res);
+                Add(res);
+
+                double.TryParse(j4, out res);
+                Add(res);
+
+                double.TryParse(j5, out res);
+                Add(res);
+
+                double.TryParse(j6, out res);
+                Add(res);
+
+                Type = PositionTypes.JOINT;
             }
             public Joint(string pos)
             {
                 string[] spl = pos.Split(',');
-                Clear();
-                Add(spl[0]);
-                Add(spl[1]);
-                Add(spl[2]);
-                Add(spl[3]);
-                Add(spl[4]);
-                Add(spl[5]);
-                Type = MType.JOINT;
+
+                int cnt = 0;
+                foreach (string s in spl)
+                {
+                    double.TryParse(s, out double res);
+                    Add(res);
+                    cnt++;
+                }
+
+                for (; cnt <= 6; cnt++)
+                    Add(0);
+
+                Type = PositionTypes.JOINT;
             }
             public Joint(Position Position)
             {
-                Clear();
                 AddRange(Position);
-                Type = MType.JOINT;
+                Type = PositionTypes.JOINT;
             }
         }
 
