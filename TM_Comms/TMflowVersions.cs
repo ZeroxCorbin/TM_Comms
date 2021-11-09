@@ -12,6 +12,7 @@ namespace TM_Comms
         V1_72_xxxx,
         V1_76_xxxx,
         V1_80_xxxx,
-        V1_82_xxxx
+        V1_82_xxxx,
+        V1_84_xxxx,
     }
 }
