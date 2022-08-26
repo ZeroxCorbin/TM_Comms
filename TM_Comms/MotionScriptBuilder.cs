@@ -17,7 +17,7 @@ namespace TM_Comms
         public MotionScriptBuilder() => Moves = new List<MoveStep>();
         public MotionScriptBuilder(List<MoveStep> moves) => Moves = moves;
 
-        public ListenNode BuildScriptData(bool addScriptExit, bool initVariables)
+        public ListenNode BuildMotionScript(bool addScriptExit, bool initVariables = true)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("\r\n");
@@ -31,6 +31,7 @@ namespace TM_Comms
                     sb.Append(ms.MoveCommand(step++, initVariables));
             }
 
+            //One (1) will always be the script complete queue tag. 
             sb.Append(GetQueueTag(1));
 
             if(addScriptExit)
@@ -163,7 +164,6 @@ namespace TM_Comms
                     else
                         DataFormat = DataFormats.JPP;
                 }
-
 
                 Position = position;
                 Accel = accel;

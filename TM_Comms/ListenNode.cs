@@ -29,6 +29,42 @@ namespace TM_Comms
         public const string ChecksumSign = "*";
         public const string EndBytes = "\r\n";
 
+        public Headers Header { get; set; } = Headers.TMSCT;
+        public string HeaderString => Header.ToString();
+
+        public int Length => Data.Length;
+
+        public CPErrorCodes CPErrorCode { get; private set; } = CPErrorCodes.OK;
+
+        public string ScriptID { get; set; } = "local";
+        public int ScriptID_Int
+        {
+            get
+            {
+                if (int.TryParse(ScriptID, out int res))
+                    return res;
+                return -1;
+            }
+        }
+
+        public string Script { get; set; } = string.Empty;
+
+        private string Data
+        {
+            get
+            {
+                if (Header == Headers.TMSCT)
+                    return $"{ScriptID}{Separator}{Script}";
+                else
+                    return $"{Script}";
+            }
+        }
+
+        public byte Checksum => CalCheckSum();
+        public string ChecksumString => CalCheckSum().ToString("X2");
+
+        public string Message => $"{StartByte}{HeaderString}{Separator}{Length}{Separator}{Data}{Separator}{ChecksumSign}{ChecksumString}{EndBytes}";
+
         public ListenNode() { }
         public ListenNode(string script, Headers header = Headers.TMSCT, string scriptID = "local")
         {
@@ -90,40 +126,6 @@ namespace TM_Comms
             return false;
 
         }
-
-        public Headers Header { get; set; } = Headers.TMSCT;
-        public string HeaderString => Header.ToString();
-
-        public int Length => Data.Length;
-
-        public CPErrorCodes CPErrorCode { get; private set; } = CPErrorCodes.OK;
-
-        public string ScriptID { get; set; } = "local";
-        public int ScriptID_Int
-        {
-            get
-            {
-                if (int.TryParse(ScriptID, out int res))
-                    return res;
-                return -1;
-            }
-        }
-
-        public string Script { get; set; } = string.Empty;
-
-        private string Data {
-            get {
-                if(Header == Headers.TMSCT)
-                    return $"{ScriptID}{Separator}{Script}";
-                else
-                    return $"{Script}";
-            }
-        }
-
-        public byte Checksum => CalCheckSum();
-        public string ChecksumString=> CalCheckSum().ToString("X2");
-
-        public string Message=> $"{StartByte}{HeaderString}{Separator}{Length}{Separator}{Data}{Separator}{ChecksumSign}{ChecksumString}{EndBytes}";
 
         private byte CalCheckSum()
         {
