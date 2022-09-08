@@ -144,13 +144,15 @@ namespace TM_Comms
             public string Blend { get; set; }
             public bool Precision { get; set; }
 
+            public string BaseName { get; set; }
+
             public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
             public string MoveCommand(int posNum, bool initFloat = true) =>  $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
                                                                             $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
 
-            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend)
+            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend, string baseName)
             {
-                if(Enum.TryParse(moveType, out MoveTypes res))
+                if (Enum.TryParse(moveType, out MoveTypes res))
                     MoveType = res;
                 else
                     MoveType = MoveTypes.PTP;
@@ -159,7 +161,7 @@ namespace TM_Comms
                     DataFormat = format;
                 else
                 {
-                    if(position.Type == PositionTypes.CARTESIAN)
+                    if (position.Type == PositionTypes.CARTESIAN)
                         DataFormat = DataFormats.CPP;
                     else
                         DataFormat = DataFormats.JPP;
@@ -169,17 +171,18 @@ namespace TM_Comms
                 Accel = accel;
                 Velocity = velocity;
                 Blend = blend;
+                BaseName = baseName;
             }
-            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string velocity, string accel, string blend)
+            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string velocity, string accel, string blend, string baseName)
             {
                 MoveType = moveType;
                 DataFormat = dataFormat;
 
                 Position = position;
-
                 Accel = accel;
                 Velocity = velocity;
                 Blend = blend;
+                BaseName= baseName;
             }
         }
 
