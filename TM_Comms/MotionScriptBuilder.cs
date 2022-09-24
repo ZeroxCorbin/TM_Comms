@@ -9,8 +9,9 @@ using TM_Comms;
 namespace TM_Comms
 {
     public partial class MotionScriptBuilder
-    {   
-
+    {
+        public int Step { get; private set; } = 1;
+        public StringBuilder MotionScript { get; private set; } = new StringBuilder();
 
         public List<MoveStep> Moves { get; set; }
 
@@ -24,8 +25,8 @@ namespace TM_Comms
 
             int step = 1;
             foreach (MoveStep ms in Moves)
-            { 
-                if(!initVariables)
+            {
+                if (!initVariables)
                     sb.Append(ms.MoveCommand());
                 else
                     sb.Append(ms.MoveCommand(step++, initVariables));
@@ -34,14 +35,47 @@ namespace TM_Comms
             //One (1) will always be the script complete queue tag. 
             sb.Append(GetQueueTag(1));
 
-            if(addScriptExit)
+            if (addScriptExit)
                 sb.Append(GetScriptExit());
 
             return new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT);
         }
 
-        private string GetQueueTag(int num) => $"QueueTag({num})\r\n";
-        private string GetScriptExit() => $"ScriptExit()\r\n";
+        private string GetQueueTag(int num) => $"QueueTag({num})";
+        private string GetWaitQueueTag(int num, int timeout) => $"WaitQueueTag({num:D2},{timeout})";
+        private string GetScriptExit() => $"ScriptExit()";
+
+
+        public void MS_Start()
+        {
+            MotionScript.Clear();
+            Step = 1;
+        }
+        public void MS_AddBaseChange(string baseName) => MotionScript.AppendLine($"ChangeBase(\"{baseName}\")");
+        public void MS_AddBaseChange(Position baseOffset) => MotionScript.AppendLine($"ChangeBase({baseOffset.ToCSV})");
+
+        public void MS_AddToolChange(string toolName) => MotionScript.AppendLine($"ChangeTCP(\"{toolName}\")");
+        public void MS_AddToolChange(Position toolOffset) => MotionScript.AppendLine($"ChangeTCP({toolOffset.ToCSV})");
+
+        public void MS_AddMove(MoveStep ms, bool initVariables = true)
+        {
+            if (!initVariables)
+                MotionScript.AppendLine(ms.MoveCommand());
+            else
+                MotionScript.AppendLine(ms.MoveCommand(Step++, initVariables));
+        }
+        public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true) => 
+            MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, toolRelative, Step++, initVariables));
+
+        //public string MS_AddTranform(Position start, Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
+        //    $"{(initFloat ? "float[]" : "")} s{posNum}={{{start.ToCSV}}}\r\n" +
+        //    $"{(initFloat ? "float[]" : "")} o{posNum}={{{offset.ToCSV}}}\r\n" +
+        //    $"{(initFloat ? "float[]" : "")} trans{posNum}=applytrans(s{posNum},o{posNum},{toolRelative})\r\n";
+
+        public void MS_AddQueueTag(int num) => MotionScript.AppendLine(GetQueueTag(num));
+        public void MS_AddWaitQueueTag(int num, int timeout) => MotionScript.AppendLine(GetWaitQueueTag(num, timeout));
+        public void MS_AddWaitQueueTag(int timeout) => MotionScript.AppendLine(GetWaitQueueTag(0, timeout));
+        public void MS_AddScriptExit() => MotionScript.AppendLine(GetScriptExit());
 
         //public const double MAX_BLEND_MM = 10.0;
         //public const double MIN_DISTANCE_MM = 0.05;
@@ -134,23 +168,29 @@ namespace TM_Comms
         };
 
         public class MoveStep
-        {  
+        {
             public MoveTypes MoveType { get; set; }
             public DataFormats DataFormat { get; set; } //CPP, JPP, etc...
 
             public Position Position { get; set; }
-            public string Velocity { get; set; } 
-            public string Accel { get; set; }
-            public string Blend { get; set; }
+            public int Velocity { get; set; }
+            public int Accel { get; set; }
+            public int Blend { get; set; }
             public bool Precision { get; set; }
 
             public string BaseName { get; set; }
 
             public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
-            public string MoveCommand(int posNum, bool initFloat = true) =>  $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
+            public string MoveCommand(int posNum, bool initFloat = true) => $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
                                                                             $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
 
-            public MoveStep(string moveType, string dataFormat, Position position, string velocity, string accel, string blend, string baseName)
+            public string MoveWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}1={{{Position.ToCSV}}}\r\n" +
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
+                $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+
+            public MoveStep(string moveType, string dataFormat, Position position, int velocity, int accel, int blend, string baseName)
             {
                 if (Enum.TryParse(moveType, out MoveTypes res))
                     MoveType = res;
@@ -173,7 +213,7 @@ namespace TM_Comms
                 Blend = blend;
                 BaseName = baseName;
             }
-            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string velocity, string accel, string blend, string baseName)
+            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, int velocity, int accel, int blend, string baseName)
             {
                 MoveType = moveType;
                 DataFormat = dataFormat;
@@ -182,7 +222,19 @@ namespace TM_Comms
                 Accel = accel;
                 Velocity = velocity;
                 Blend = blend;
-                BaseName= baseName;
+                BaseName = baseName;
+            }
+
+            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string baseName)
+            {
+                MoveType = moveType;
+                DataFormat = dataFormat;
+
+                Position = position;
+                Accel = 100;
+                Velocity = 100;
+                Blend = 25;
+                BaseName = baseName;
             }
         }
 
@@ -202,7 +254,7 @@ namespace TM_Comms
             public double V5 { get { return base[4]; } set { base[4] = value; } }
             public double V6 { get { return base[5]; } set { base[5] = value; } }
 
-            public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}"; 
+            public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}";
 
 
             public PositionTypes Type { get; set; }
@@ -219,17 +271,21 @@ namespace TM_Comms
 
             public Position(string pos)
             {
+                pos = pos.Trim('\r', '\n');
+                pos = pos.Trim('{', '}');
+
                 string[] spl = pos.Split(',');
 
                 int cnt = 0;
-                foreach(string s in spl)
+                foreach (string s in spl)
                 {
-                    double.TryParse(s, out double res);
+                    if (!double.TryParse(s, out double res))
+                        break;
                     Add(res);
                     cnt++;
                 }
 
-                for ( ; cnt <= 6; cnt++)
+                for (; cnt <= 6; cnt++)
                     Add(0);
             }
         }
