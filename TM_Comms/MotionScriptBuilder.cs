@@ -146,17 +146,24 @@ namespace TM_Comms
         {
             PTP,
             Line,
-            PLine
+            PLine,
+            Move_PTP,
+            Move_Line,
+            Move_PLine,
 
         }
 
         public enum DataFormats
         {
             CPP,
-            JPP,
             CPR,
             CAP,
             CAR,
+            TPP,
+            TPR,
+            TAP,
+            TAR,
+            JPP,
             JAP
         }
 
@@ -165,6 +172,9 @@ namespace TM_Comms
             { MoveTypes.PTP, new List<DataFormats>() { DataFormats.CPP, DataFormats.JPP } },
             { MoveTypes.Line, new List<DataFormats>() { DataFormats.CPP, DataFormats.CPR, DataFormats.CAP, DataFormats.CAR } },
             { MoveTypes.PLine, new List<DataFormats>() { DataFormats.CAP, DataFormats.JAP } },
+            { MoveTypes.Move_PTP, new List<DataFormats>() { DataFormats.CPP, DataFormats.TPP, DataFormats.JPP } },
+            { MoveTypes.Move_Line, new List<DataFormats>() { DataFormats.CPP, DataFormats.CPR, DataFormats.CAP, DataFormats.CAR, DataFormats.TPP, DataFormats.TPR, DataFormats.TAP, DataFormats.TAR } },
+            { MoveTypes.Move_PLine, new List<DataFormats>() { DataFormats.CAP, DataFormats.TAP, DataFormats.JAP } },
         };
 
         public class MoveStep
@@ -190,6 +200,7 @@ namespace TM_Comms
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
                 $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
 
+            public MoveStep() { }
             public MoveStep(string moveType, string dataFormat, Position position, int velocity, int accel, int blend, string baseName)
             {
                 if (Enum.TryParse(moveType, out MoveTypes res))
@@ -259,7 +270,7 @@ namespace TM_Comms
 
             public PositionTypes Type { get; set; }
 
-            protected Position() { }
+            public Position() { }
 
             public Position(PositionTypes type)
             {
