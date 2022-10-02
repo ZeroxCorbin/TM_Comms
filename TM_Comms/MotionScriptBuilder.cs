@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using TM_Comms;
+using static TM_Comms.MotionScriptBuilder;
 
 namespace TM_Comms
 {
@@ -57,7 +58,7 @@ namespace TM_Comms
         public void MS_AddToolChange(string toolName) => MotionScript.AppendLine($"ChangeTCP(\"{toolName}\")");
         public void MS_AddToolChange(Position toolOffset) => MotionScript.AppendLine($"ChangeTCP({toolOffset.ToCSV})");
 
-        public void MS_AddMove(MoveStep ms, bool initVariables = true)
+        public void MS_AddMove(MoveStep ms, bool initVariables = false)
         {
             if (!initVariables)
                 MotionScript.AppendLine(ms.MoveCommand());
@@ -190,18 +191,32 @@ namespace TM_Comms
 
             public string BaseName { get; set; }
 
-            public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+            public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
             public string MoveCommand(int posNum, bool initFloat = true) => $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
-                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public string MoveWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}1={{{Position.ToCSV}}}\r\n" +
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
-                $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})\r\n";
+                $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
-            public MoveStep() { }
-            public MoveStep(string moveType, string dataFormat, Position position, int velocity, int accel, int blend, string baseName)
+            public MoveStep() 
+            {
+            }
+
+            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string baseName = "RobotBase", int blend = 25, int velocity = 100, int accel = 10)
+            {
+                MoveType = moveType;
+                DataFormat = dataFormat;
+
+                Position = position;
+                Accel = accel;
+                Velocity = velocity;
+                Blend = blend;
+                BaseName = baseName;
+            }
+            public MoveStep(string moveType, string dataFormat, Position position, string baseName = "RobotBase", int blend = 25, int velocity = 100, int accel = 10)
             {
                 if (Enum.TryParse(moveType, out MoveTypes res))
                     MoveType = res;
@@ -224,29 +239,7 @@ namespace TM_Comms
                 Blend = blend;
                 BaseName = baseName;
             }
-            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, int velocity, int accel, int blend, string baseName)
-            {
-                MoveType = moveType;
-                DataFormat = dataFormat;
 
-                Position = position;
-                Accel = accel;
-                Velocity = velocity;
-                Blend = blend;
-                BaseName = baseName;
-            }
-
-            public MoveStep(MoveTypes moveType, DataFormats dataFormat, Position position, string baseName)
-            {
-                MoveType = moveType;
-                DataFormat = dataFormat;
-
-                Position = position;
-                Accel = 100;
-                Velocity = 100;
-                Blend = 25;
-                BaseName = baseName;
-            }
         }
 
 
