@@ -65,7 +65,7 @@ namespace TM_Comms
             else
                 MotionScript.AppendLine(ms.MoveCommand(Step++, initVariables));
         }
-        public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true) => 
+        public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true) =>
             MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, toolRelative, Step++, initVariables));
 
         //public string MS_AddTranform(Position start, Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
@@ -183,6 +183,7 @@ namespace TM_Comms
             public MoveTypes MoveType { get; set; }
             public DataFormats DataFormat { get; set; } //CPP, JPP, etc...
 
+
             public Position Position { get; set; }
             public int Velocity { get; set; }
             public int Accel { get; set; }
@@ -201,7 +202,7 @@ namespace TM_Comms
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
                 $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
-            public MoveStep() 
+            public MoveStep()
             {
             }
 
@@ -251,6 +252,8 @@ namespace TM_Comms
 
         public class Position : List<double>
         {
+            private double rad(double rad) => (rad / 180) * Math.PI;
+
             public double V1 { get { return base[0]; } set { base[0] = value; } }
             public double V2 { get { return base[1]; } set { base[1] = value; } }
             public double V3 { get { return base[2]; } set { base[2] = value; } }
@@ -260,10 +263,51 @@ namespace TM_Comms
 
             public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}";
 
+#if NETCOREAPP
+
+        public System.Numerics.Matrix4x4 GetMatrix()
+        {
+            var res = System.Numerics.Matrix4x4.CreateFromYawPitchRoll((float)rad(V6), (float)rad(V5), (float)rad(V4));
+            var lin = System.Numerics.Matrix4x4.CreateTranslation((float)V1,(float)V2,(float)V3);
+
+            return res + lin;
+        }  
+
+        //public System.Windows.Media.Media3D.Transform3DGroup GetTransform3DGroup()
+        //{
+        //        System.Windows.Media.Media3D.Transform3DGroup group = new System.Windows.Media.Media3D.Transform3DGroup();
+        //        group.Children.Add(new System.Windows.Media.Media3D.RotateTransform3D(new System.Windows.Media.Media3D.QuaternionRotation3D(GetQuaternion()))); 
+        //        group.Children.Add(new System.Windows.Media.Media3DTranslateTransform3D(new System.Windows.Media.Media3D.Vector3D(V1, V2, V3)));
+        //        return group;
+        //}
+
+        public System.Numerics.Quaternion GetQuaternion()
+        {
+            float cy = (float)Math.Cos(rad(V6) * 0.5);
+            float sy = (float)Math.Sin(rad(V6) * 0.5);
+            float cp = (float)Math.Cos(rad(V5) * 0.5);
+            float sp = (float)Math.Sin(rad(V5) * 0.5);
+            float cr = (float)Math.Cos(rad(V4) * 0.5);
+            float sr = (float)Math.Sin(rad(V4) * 0.5);
+
+            return new System.Numerics.Quaternion
+            {
+                W = (cr * cp * cy + sr * sp * sy),
+                X = (sr * cp * cy - cr * sp * sy),
+                Y = (cr * sp * cy + sr * cp * sy),
+                Z = (cr * cp * sy - sr * sp * cy)
+            };
+        }
+
+#endif
 
             public PositionTypes Type { get; set; }
 
-            public Position() { }
+            public Position() 
+            {
+                //for (int i = 0; i < 6; i++)
+                //    Add(0);
+            }
 
             public Position(PositionTypes type)
             {
