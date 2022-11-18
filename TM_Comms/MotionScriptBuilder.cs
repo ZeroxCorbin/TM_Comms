@@ -67,7 +67,12 @@ namespace TM_Comms
         }
         public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true) =>
             MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, toolRelative, Step++, initVariables));
-
+        public void MS_AddMoveFromWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true)
+        {
+            MS_AddQueueTag(9);
+            MotionScript.AppendLine(ms.MoveFromWithOffsetCommand(offset, toolRelative, Step++, initVariables));
+        }
+            
         //public string MS_AddTranform(Position start, Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
         //    $"{(initFloat ? "float[]" : "")} s{posNum}={{{start.ToCSV}}}\r\n" +
         //    $"{(initFloat ? "float[]" : "")} o{posNum}={{{offset.ToCSV}}}\r\n" +
@@ -190,6 +195,7 @@ namespace TM_Comms
             public int Blend { get; set; }
             public bool Precision { get; set; }
 
+            public object Tag { get; set; }
             public string BaseName { get; set; }
 
             public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
@@ -201,6 +207,12 @@ namespace TM_Comms
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
                 $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
+
+            public string MoveFromWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
+    $"{(initFloat ? "float[]" : "")} targetP{posNum}1=Robot[0].CoordRobot\r\n" +
+    $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
+    $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
+    $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public MoveStep()
             {
@@ -261,7 +273,7 @@ namespace TM_Comms
             public double V5 { get { return base[4]; } set { base[4] = value; } }
             public double V6 { get { return base[5]; } set { base[5] = value; } }
 
-            public string ToCSV => $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}";
+            public string ToCSV => base.Count > 0 ? $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}" : "0,0,0,0,0,0";
 
 #if NETCOREAPP
 
