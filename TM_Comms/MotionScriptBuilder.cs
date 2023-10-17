@@ -31,10 +31,12 @@ namespace TM_Comms
                     sb.Append(ms.MoveCommand());
                 else
                     sb.Append(ms.MoveCommand(step++, initVariables));
+                sb.Append("\r\n");
             }
 
             //One (1) will always be the script complete queue tag. 
             sb.Append(GetQueueTag(1));
+            sb.Append("\r\n");
 
             if (addScriptExit)
                 sb.Append(GetScriptExit());
@@ -72,7 +74,7 @@ namespace TM_Comms
             MS_AddQueueTag(9);
             MotionScript.AppendLine(ms.MoveFromWithOffsetCommand(offset, toolRelative, Step++, initVariables));
         }
-            
+
         //public string MS_AddTranform(Position start, Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
         //    $"{(initFloat ? "float[]" : "")} s{posNum}={{{start.ToCSV}}}\r\n" +
         //    $"{(initFloat ? "float[]" : "")} o{posNum}={{{offset.ToCSV}}}\r\n" +
@@ -209,10 +211,10 @@ namespace TM_Comms
                 $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public string MoveFromWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
-    $"{(initFloat ? "float[]" : "")} targetP{posNum}1=Robot[0].CoordRobot\r\n" +
-    $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
-    $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
-    $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}1=Robot[0].CoordRobot\r\n" +
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
+                $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
+                $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public MoveStep()
             {
@@ -315,7 +317,7 @@ namespace TM_Comms
 
             public PositionTypes Type { get; set; }
 
-            public Position() 
+            public Position()
             {
                 //for (int i = 0; i < 6; i++)
                 //    Add(0);
