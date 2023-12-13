@@ -361,6 +361,9 @@ namespace TM_Comms
 
             public Position(string pos)
             {
+                if (string.IsNullOrEmpty(pos))
+                    return;
+
                 pos = pos.Trim('\r', '\n', '{', '}');
 
                 string[] spl = pos.Split(',');
