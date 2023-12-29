@@ -381,8 +381,7 @@ namespace TM_Comms
 
             public Position(PositionTypes type)
             {
-                for (int i = 0; i < 6; i++)
-                    Add(0);
+                FillBase();
 
                 Type = type;
             }
