@@ -68,8 +68,10 @@ namespace TM_Comms
             else
                 MotionScript.AppendLine(ms.MoveCommand(Step++, initVariables));
         }
-        public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true) =>
-            MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, toolRelative, Step++, initVariables));
+        public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool initialPoint) =>
+            MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, initialPoint));
+        public void MS_AddMoveWithOffsetChangeRef(MoveStep ms, Position offset, Position newFrame) =>
+            MotionScript.AppendLine(ms.MoveWithOffsetChangeRef(offset, newFrame));
         public void MS_AddMoveFromWithOffset(MoveStep ms, Position offset, bool toolRelative, bool initVariables = true)
         {
             MS_AddQueueTag(9);
@@ -205,11 +207,11 @@ namespace TM_Comms
             public string MoveCommand(int posNum, bool initFloat = true) => $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
                                                                             $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
-            public string MoveWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
-                $"{(initFloat ? "float[]" : "")} targetP{posNum}1={{{Position.ToCSV}}}\r\n" +
-                $"{(initFloat ? "float[]" : "")} targetP{posNum}2={{{offset.ToCSV}}}\r\n" +
-                $"{(initFloat ? "float[]" : "")} targetP{posNum}3=applytrans(targetP{posNum}1,targetP{posNum}2,{toolRelative})\r\n" +
-                $"{MoveType}(\"{DataFormat}\",targetP{posNum}3,{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
+            public string MoveWithOffsetCommand(Position offset, bool initialPoint) =>
+                $"{MoveType}(\"{DataFormat}\",applytrans({{{offset.ToCSV}}},{{{Position.ToCSV}}},{initialPoint}),{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
+
+            public string MoveWithOffsetChangeRef(Position offset, Position newFrame) =>
+    $"{MoveType}(\"{DataFormat}\",changeref({{{Position.ToCSV}}},{{{offset.ToCSV}}},{{{newFrame.ToCSV}}}),{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public string MoveFromWithOffsetCommand(Position offset, bool toolRelative, int posNum, bool initFloat = true) =>
                 $"{(initFloat ? "float[]" : "")} targetP{posNum}1=Robot[0].CoordRobot\r\n" +
@@ -280,8 +282,32 @@ namespace TM_Comms
             public double V5 { get { return base[4]; } set { base[4] = value; } }
             public double V6 { get { return base[5]; } set { base[5] = value; } }
 
-            public string ToCSV => base.Count > 0 ? $"{base[0]},{base[1]},{base[2]},{base[3]},{base[4]},{base[5]}" : "0,0,0,0,0,0";
+            public string ToCSV => base.Count > 0 ? $"{base[0]:N3},{base[1]:N3},{base[2]:N3},{base[3]:N3},{base[4]:N3},{base[5]:N3}" : "0.000,0.000,0.000,0.000,0.000,0.000";
 
+            public Position() { }
+            public Position(Position pos)
+            {
+                FillBase();
+
+                V1 = pos.V1;
+                V2 = pos.V2;
+                V3 = pos.V3;
+                V4 = pos.V4;
+                V5 = pos.V5;
+                V6 = pos.V6;
+            }
+
+            public void Copy(Position pos)
+            {
+                FillBase();
+
+                V1 = pos.V1;
+                V2 = pos.V2;
+                V3 = pos.V3;
+                V4 = pos.V4;
+                V5 = pos.V5;
+                V6 = pos.V6;
+            }
 
             public void Parse(string pos)
             {
@@ -345,10 +371,12 @@ namespace TM_Comms
 
             public PositionTypes Type { get; set; }
 
-            public Position()
+            public void FillBase()
             {
-                //for (int i = 0; i < 6; i++)
-                //    Add(0);
+                base.Clear();
+
+                for (int i = 0; i < 6; i++)
+                    Add(0);
             }
 
             public Position(PositionTypes type)
