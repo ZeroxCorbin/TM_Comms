@@ -20,7 +20,7 @@ namespace TM_Comms
         public MotionScriptBuilder() => Moves = new List<MoveStep>();
         public MotionScriptBuilder(List<MoveStep> moves) => Moves = moves;
 
-        public ListenNode BuildMotionScript(bool addScriptExit, bool initVariables = true)
+        public ListenNode BuildMotionScript(bool addScriptExit)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("\r\n");
@@ -28,10 +28,11 @@ namespace TM_Comms
             int step = 1;
             foreach (MoveStep ms in Moves)
             {
-                if (!initVariables)
-                    sb.Append(ms.MoveCommand());
-                else
-                    sb.Append(ms.MoveCommand(step++, initVariables));
+                sb.Append(ms.MoveCommand());
+                //if (!initVariables)
+                //    sb.Append(ms.MoveCommand());
+                //else
+                //    sb.Append(ms.MoveCommand(step++, initVariables));
                 sb.Append("\r\n");
             }
 
@@ -63,10 +64,12 @@ namespace TM_Comms
 
         public void MS_AddMove(MoveStep ms, bool initVariables = false)
         {
-            if (!initVariables)
-                MotionScript.AppendLine(ms.MoveCommand());
-            else
-                MotionScript.AppendLine(ms.MoveCommand(Step++, initVariables));
+            MotionScript.AppendLine(ms.MoveCommand());
+
+            //if (!initVariables)
+            //    MotionScript.AppendLine(ms.MoveCommand());
+            //else
+            //    MotionScript.AppendLine(ms.MoveCommand(Step++, initVariables));
         }
         public void MS_AddMoveWithOffset(MoveStep ms, Position offset, bool initialPoint) =>
             MotionScript.AppendLine(ms.MoveWithOffsetCommand(offset, initialPoint));
@@ -204,8 +207,8 @@ namespace TM_Comms
             public string BaseName { get; set; }
 
             public string MoveCommand() => $"{MoveType}(\"{DataFormat}\",{Position.ToCSV},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
-            public string MoveCommand(int posNum, bool initFloat = true) => $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
-                                                                            $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
+            //public string MoveCommand(int posNum, bool initFloat = true) => $"{(initFloat ? "float[]" : "")} targetP{posNum}={{{Position.ToCSV}}}\r\n" +
+            //                                                                $"{MoveType}(\"{DataFormat}\",targetP{posNum},{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";
 
             public string MoveWithOffsetCommand(Position offset, bool initialPoint) =>
                 $"{MoveType}(\"{DataFormat}\",applytrans({{{offset.ToCSV}}},{{{Position.ToCSV}}},{initialPoint}),{Velocity},{Accel},{Blend},{(!Precision ? "true" : "false")})";

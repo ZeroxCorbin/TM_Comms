@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;net472;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net6.0;netstandard2.1;net472;netcoreapp3.1</TargetFrameworks>
     <UserSecretsId>dc98d62c-3792-4a7c-aff6-806d0b9329e6</UserSecretsId>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\AsyncSocket\AsyncSocket.csproj" />
   </ItemGroup>
 
 </Project>
