@@ -471,6 +471,34 @@ namespace TM_Comms.Controllers
             return value;
         }
 
+        public async Task<ResultState> GetInterPoint(MotionScriptBuilder.Position first, MotionScriptBuilder.Position second, double ratio, int listenSendIndex = 0)
+        {
+            if (!await IsListenNodeReady())
+                return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(interpoint({{{first.ToCSV}}}, {{{second.ToCSV}}}, {ratio}), 10, 3))");
+
+            var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "interpoint");
+            ListenNodeController.Send(ln.Message);
+
+            ResultState value;
+            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+                return value;
+
+            ResultState res;
+            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+                return res;
+
+            //if (scriptExit)
+            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
+            //        return res;
+
+            return value;
+        }
+
+
         public async Task<ResultState> GetTrans(MotionScriptBuilder.Position start, MotionScriptBuilder.Position second, bool referenceFirst = false, int listenSendIndex = 0)
         {
             if (!await IsListenNodeReady())
@@ -525,7 +553,7 @@ namespace TM_Comms.Controllers
             return value;
         }
 
-        public async Task<ResultState> Inverse(MotionScriptBuilder.Position trans, bool baseRelative = false, int listenSendIndex = 0)
+        public async Task<ResultState> GetInverse(MotionScriptBuilder.Position trans, bool baseRelative = false, int listenSendIndex = 0)
         {
             if (!await IsListenNodeReady())
                 return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };

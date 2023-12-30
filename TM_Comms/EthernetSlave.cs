@@ -159,14 +159,14 @@ namespace TM_Comms
             if (Header == Headers.CPERR) return string.Empty;
 
             int loc = Content.IndexOf(name);
-            int start = -1, end = -1;
+            int start, end;
 
             if (loc > -1)
             {
                 if (Mode == Modes.STRING)
                 {
                     start = Content.IndexOf('=', loc + name.Length) + 1;
-                    string t1 = Content.Substring(start);
+                    //string t1 = Content.Substring(start);
                     if (start > -1)
                         end = Content.IndexOf('\n', start) - 1;
                     else
