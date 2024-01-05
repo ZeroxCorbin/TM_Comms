@@ -285,7 +285,7 @@ namespace TM_Comms
             public double V5 { get { return base[4]; } set { base[4] = value; } }
             public double V6 { get { return base[5]; } set { base[5] = value; } }
 
-            public string ToCSV => base.Count > 0 ? $"{base[0]:N3},{base[1]:N3},{base[2]:N3},{base[3]:N3},{base[4]:N3},{base[5]:N3}" : "0.000,0.000,0.000,0.000,0.000,0.000";
+            public string ToCSV => base.Count > 0 ? $"{base[0]:F3},{base[1]:F3},{base[2]:F3},{base[3]:F3},{base[4]:F3},{base[5]:F3}" : "0.000,0.000,0.000,0.000,0.000,0.000";
 
             public Position() { }
             public Position(Position pos)
