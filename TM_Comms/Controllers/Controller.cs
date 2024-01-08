@@ -19,7 +19,8 @@ namespace TM_Comms.Controllers
 
     public class Controller
     {
-
+        public delegate void RobotDataUpdatedDel();
+        public event RobotDataUpdatedDel RobotDataUpdated;
         public double NominalOffset { get; } = -100;
 
         //private Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -1032,6 +1033,8 @@ namespace TM_Comms.Controllers
                     CurrentJointPosition = new MotionScriptBuilder.Joint(ethernetSlave.GetValue("Joint_Angle")) { Type = MotionScriptBuilder.PositionTypes.JOINT };
 
                     isEsReady = true;
+
+                    Task.Run(() => RobotDataUpdated?.Invoke());
                 }
             }
         }
