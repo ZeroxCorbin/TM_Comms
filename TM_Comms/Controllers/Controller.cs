@@ -1097,6 +1097,8 @@ namespace TM_Comms.Controllers
                 CurrentJointPosition = null;
                 isEsReady = false;
             }
+
+            Task.Run(() => RobotDataUpdated?.Invoke());
         }
 
 
