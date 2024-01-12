@@ -592,7 +592,7 @@ namespace TM_Comms.Controllers
                         return new ResultState() { WaitingFor = WaitingForEnum.BaseChange, State = StateEnum.Timeout };
 
             var mb = new MotionScriptBuilder(new List<MotionScriptBuilder.MoveStep>() { move });
-            var ln = mb.BuildMotionScript(false);
+            var ln = mb.BuildMotionScript(false, queueTagNumber);
 
             return await WaitForMotion(ln, queueTagNumber);
         }
@@ -607,7 +607,7 @@ namespace TM_Comms.Controllers
                     return new ResultState() { WaitingFor = WaitingForEnum.BaseChange, State = StateEnum.Timeout };
 
             var mb = new MotionScriptBuilder(moves);
-            var ln = mb.BuildMotionScript(false);
+            var ln = mb.BuildMotionScript(false, queueTagNumber);
 
             return await WaitForMotion(ln, queueTagNumber);
         }

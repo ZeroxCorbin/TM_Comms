@@ -20,7 +20,7 @@ namespace TM_Comms
         public MotionScriptBuilder() => Moves = new List<MoveStep>();
         public MotionScriptBuilder(List<MoveStep> moves) => Moves = moves;
 
-        public ListenNode BuildMotionScript(bool addScriptExit)
+        public ListenNode BuildMotionScript(bool addScriptExit, int queueTagNumber)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("\r\n");
@@ -37,7 +37,7 @@ namespace TM_Comms
             }
 
             //One (1) will always be the script complete queue tag. 
-            sb.Append(GetQueueTag(1));
+            sb.Append(GetQueueTag(queueTagNumber));
             sb.Append("\r\n");
 
             if (addScriptExit)
