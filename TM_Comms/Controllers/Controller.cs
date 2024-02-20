@@ -119,8 +119,6 @@ namespace TM_Comms.Controllers
         public ListenNodeController ListenNodeController { get; } = new ListenNodeController();
         public bool ListenNodeWait { get; private set; } = false;
 
-        private MotionScriptBuilder Builder { get; set; } = new MotionScriptBuilder();
-
         private bool WaitingForOK;
         private string WaitingForOK_ScriptID;
 
@@ -165,6 +163,21 @@ namespace TM_Comms.Controllers
             LoadBasesList();
         }
 
+        public Controller(string filesDirectory)
+        {
+            ToolsDirectory = filesDirectory;
+            BasesDirectory = filesDirectory;
+
+            EthernetSlaveController.SocketStateEvent += EthernetSlaveController_SocketStateEvent;
+            EthernetSlaveController.EsStateEvent += EthernetSlaveController_EsStateEvent;
+
+            //ListenNodeController.SocketStateEvent += ListenNodeController_SocketStateEvent;
+            ListenNodeController.MessageEvent += ListenNodeController_MessageEvent;
+
+            LoadToolsList();
+            LoadBasesList();
+        }
+
         public void Connect(string ip)
         {
             EthernetSlaveController.Connect(ip);
@@ -176,7 +189,6 @@ namespace TM_Comms.Controllers
             EthernetSlaveController.Disconnect();
             ListenNodeController.Disconnect();
         }
-
 
         public async Task<ResultState> GetListenNodeStatus(string nodeName = null)
         {
@@ -1045,18 +1057,19 @@ namespace TM_Comms.Controllers
 
             Tools.Add("NOTOOL", new Tool() { Name = "NOTOOL" });
 
-            if (string.IsNullOrEmpty(ToolsDirectory))
-                return;
+            if (string.IsNullOrEmpty(ToolsDirectory)) return;
 
             foreach (var file in Directory.EnumerateFiles(ToolsDirectory))
             {
+                if (!file.EndsWith(".tool")) continue;
+
                 var data = File.ReadAllText(file);
                 var tool = JsonConvert.DeserializeObject<Tool>(data);
                 if (tool != null)
                 {
                     tool.FilePath = file;
-                    if (!Tools.ContainsKey(Path.GetFileName(file).Replace(Path.GetExtension(file), "")))
-                        Tools.Add(Path.GetFileName(file).Replace(Path.GetExtension(file), ""), tool);
+                    if (!Tools.ContainsKey(Path.GetFileNameWithoutExtension(file)))
+                        Tools.Add(Path.GetFileNameWithoutExtension(file), tool);
                 }
 
             }
@@ -1074,16 +1087,14 @@ namespace TM_Comms.Controllers
 
             foreach (var file in Directory.EnumerateFiles(BasesDirectory))
             {
+                if (!file.EndsWith(".base")) continue;
+
                 var data = File.ReadAllText(file);
                 var base1 = JsonConvert.DeserializeObject<Base>(data);
-                //var base1 = new Base()
-                //{
-                //    FilePath = file,
-                //    Position = File.ReadAllText(file)
-                //};
+
                 base1.FilePath = file;
 
-                Bases.Add(Path.GetFileName(file).Replace(Path.GetExtension(file), ""), base1);
+                Bases.Add(Path.GetFileNameWithoutExtension(file), base1);
             }
         }
 
