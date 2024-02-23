@@ -207,9 +207,11 @@ namespace TM_Comms.Controllers
             if (string.IsNullOrEmpty(name))
                 name = "RobotBase";
 
+            PreWaitForOK("base");
+
             ListenNodeController.Send(new ListenNode($"ChangeBase(\"{name}\")", ListenNode.Headers.TMSCT, "base").Message);
 
-            var res = await WaitForOK("base");
+            var res = await WaitForOK();
 
             if (res.State == StateEnum.OK)
                 await Task.Run(() =>
@@ -253,9 +255,11 @@ namespace TM_Comms.Controllers
                 sb.AppendLine($"ChangeBase({_base.Position})");
             }
 
+            PreWaitForOK("base");
+
             ListenNodeController.Send(new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "base").Message);
 
-            var res = await WaitForOK("base");
+            var res = await WaitForOK();
 
             if (res.State == StateEnum.OK)
                 await Task.Run(() =>
@@ -281,14 +285,21 @@ namespace TM_Comms.Controllers
                 return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
 
             var ln = new ListenNode($"ListenSend(90, GetString(Base[\"{name}\"].Value))", ListenNode.Headers.TMSCT, "baseCoords");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend("90");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend("90")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
 
             return value;
@@ -344,9 +355,11 @@ namespace TM_Comms.Controllers
                 sb.AppendLine($"ChangeTCP({tool.Position})");
             }
 
+            PreWaitForOK("tool");
+
             ListenNodeController.Send(new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "tool").Message);
 
-            var res = await WaitForOK("tool");
+            var res = await WaitForOK();
 
             if (res.State == StateEnum.OK)
                 await Task.Run(() =>
@@ -369,14 +382,21 @@ namespace TM_Comms.Controllers
                 return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
 
             var ln = new ListenNode($"ListenSend(90, GetString(TCP[\"{name}\"].Value))", ListenNode.Headers.TMSCT, "toolCoords");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend("90");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend("90")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
 
             return value;
@@ -388,14 +408,21 @@ namespace TM_Comms.Controllers
                 return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
 
             var ln = new ListenNode("ListenSend(90, GetString(Vision_DoJob(\"Landmark\"),2,0))", ListenNode.Headers.TMSCT, "land");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend("90");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend("90")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;   
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
 
             return value;
@@ -413,19 +440,23 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(dist({{{first.ToCSV}}}, {{{second.ToCSV}}}), 10, 3))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "dist");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
-                return value;
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
+return value;
+            }
+                
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -440,19 +471,22 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(points2coord({{{origin.ToCSV}}}, {{{xOffset.ToCSV}}}, {{{yOffset.ToCSV}}})))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "points2coord");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
-                return value;
-
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
+return value;
+            }
+                
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -467,19 +501,23 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(applytrans({{{initial.ToCSV}}}, {{{offset.ToCSV}}}, {initialPoint}), 10, 3))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "applytrans");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
 
+            }
+                
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -494,19 +532,22 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(interpoint({{{first.ToCSV}}}, {{{second.ToCSV}}}, {ratio}), 10, 3))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "interpoint");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK   = false;
                 return value;
-
+            }
+                
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -522,19 +563,22 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(trans({{{start.ToCSV}}}, {{{second.ToCSV}}}, {referenceFirst}), 10, 3))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "trans");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -549,19 +593,22 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(changeref({{{originalPoint.ToCSV}}}, {{{originalFrame.ToCSV}}}, {{{newFrame.ToCSV}}})))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "changeref");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -576,19 +623,22 @@ namespace TM_Comms.Controllers
             sb.AppendLine($"ListenSend(9{listenSendIndex}, GetString(inversetrans({{{trans.ToCSV}}}, {baseRelative})))");
 
             var ln = new ListenNode(sb.ToString(), ListenNode.Headers.TMSCT, "inverse");
+
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForListenSend($"9{listenSendIndex}");
+
             ListenNodeController.Send(ln.Message);
 
             ResultState value;
-            if ((value = await WaitForListenSend($"9{listenSendIndex}")).State != StateEnum.OK)
+            if ((value = await WaitForListenSend()).State != StateEnum.OK)
+            {
+                WaitingForOK = false;
                 return value;
+            }
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
                 return res;
-
-            //if (scriptExit)
-            //    if ((res = await ScriptExit(1, "Listen1")).State != StateEnum.OK)
-            //        return res;
 
             return value;
         }
@@ -630,14 +680,22 @@ namespace TM_Comms.Controllers
                 return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
 
             var ln = new ListenNode(script);
+
+            PreWaitForOK(ln.ScriptID);
+            if (queueTagNumber > 0)
+                PreWaitForQueueTag(queueTagNumber);
+
             ListenNodeController.Send(ln.Message);
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID)).State != StateEnum.OK)
+            if ((res = await WaitForOK()).State != StateEnum.OK)
+            {
+                WaitingForQueueTag = false;
                 return res;
+            }
 
             if (queueTagNumber > 0)
-                if ((res = await WaitForQueueTag(queueTagNumber)).State != StateEnum.OK)
+                if ((res = await WaitForQueueTag()).State != StateEnum.OK)
                     return res;
 
             if (scriptExit)
@@ -645,34 +703,8 @@ namespace TM_Comms.Controllers
                     return res;
 
             return res;
+
         }
-
-        //public async Task<ResultState> MoveCurrentForcedZ_Async(string baseName, double z, int queueTagNumber = 0)
-        //{
-        //    if (!await IsListenNodeReady())
-        //        return new ResultState() { WaitingFor = WaitingForEnum.Status, State = StateEnum.Timeout };
-
-        //    if (!baseName.Equals(CurrentBase))
-        //        if (!await SetBase(baseName))
-        //            return new ResultState() { WaitingFor = WaitingForEnum.BaseChange, State = StateEnum.Timeout };
-
-        //    MotionScriptBuilder.Position target;
-        //    lock (UpdateLock)
-        //    {
-        //        if (CurrentPosition == null)
-        //            return false;
-
-        //        target = CurrentPosition;
-        //        target.V3 = z;
-        //    }
-
-        //    var move = new MotionScriptBuilder.MoveStep(MotionScriptBuilder.MoveTypes.Line, MotionScriptBuilder.DataFormats.CPP, target, baseName);
-        //    var mb = new MotionScriptBuilder(new List<MotionScriptBuilder.MoveStep>() { move });
-        //    var ln = mb.BuildMotionScript(false, false);
-
-        //    return await WaitForMotion(ln, queueTagNumber);
-        //}
-
 
         public async Task<ResultState> ScriptExit(int mode = 0, string nodeName = "Listen1")
         {
@@ -717,26 +749,33 @@ namespace TM_Comms.Controllers
 
         private async Task<ResultState> WaitForMotion(ListenNode ln, int queueTagNumber, int timeout = 5000)
         {
+            PreWaitForOK(ln.ScriptID);
+            PreWaitForQueueTag(queueTagNumber);
+
             ListenNodeController.Send(ln.Message);
 
             ResultState res;
-            if ((res = await WaitForOK(ln.ScriptID, timeout)).State == StateEnum.OK)
+            if ((res = await WaitForOK(timeout)).State == StateEnum.OK)
             {
                 if (queueTagNumber > 0)
-                    if ((res = await WaitForQueueTag(queueTagNumber)).State != StateEnum.OK)
+                    if ((res = await WaitForQueueTag()).State != StateEnum.OK)
                         return res;
 
                 return new ResultState() { WaitingFor = WaitingForEnum.MotionComplete, State = StateEnum.OK };
             }
-            else
-                return res;
 
+            WaitingForQueueTag = false;
+
+            return res;
         }
-        public async Task<ResultState> WaitForOK(string scriptID, int timeout = 5000)
+
+        public void PreWaitForOK(string scriptID)
         {
             WaitingForOK = true;
             WaitingForOK_ScriptID = scriptID;
-
+        }
+        public async Task<ResultState> WaitForOK(int timeout = 5000)
+        {
             await Task.Run(() =>
             {
                 DateTime start = DateTime.Now;
@@ -773,11 +812,14 @@ namespace TM_Comms.Controllers
 
             return res;
         }
-        public async Task<ResultState> WaitForQueueTag(int number)
+
+        public void PreWaitForQueueTag(int queueTagNumber)
         {
             WaitingForQueueTag = true;
-            WaitingForQueueTag_TagNumber = number.ToString("D2");
-
+            WaitingForQueueTag_TagNumber = queueTagNumber.ToString("D2");
+        }
+        public async Task<ResultState> WaitForQueueTag()
+        {
             await Task.Run(() =>
             {
                 DateTime start = DateTime.Now;
@@ -810,11 +852,14 @@ namespace TM_Comms.Controllers
 
             return res;
         }
-        public async Task<ResultState> WaitForListenSend(string scriptID, int timeout = 5000)
+
+        public void PreWaitForListenSend(string scriptID)
         {
             WaitingForListenSend = true;
             WaitingForListenSend_ScriptID = scriptID;
-
+        }
+        public async Task<ResultState> WaitForListenSend(int timeout = 5000)
+        {
             await Task.Run(() =>
             {
                 DateTime start = DateTime.Now;
@@ -962,11 +1007,22 @@ namespace TM_Comms.Controllers
                 if (WaitingForQueueTag)
                 {
                     if (listenNode.ScriptID == WaitingForQueueTag_TagNumber)
+                    {
                         if (listenNode.Script.StartsWith($"{WaitingForQueueTag_TagNumber}"))
                         {
                             WaitingForQueueTag = false;
                             return;
                         }
+                        else
+                        {
+
+                        }
+                    }
+                    else
+                    {
+
+                    }
+
                 }
 
             }
