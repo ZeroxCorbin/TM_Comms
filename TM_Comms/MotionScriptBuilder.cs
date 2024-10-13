@@ -334,7 +334,7 @@ namespace TM_Comms
 
             }
 
-#if NETCOREAPP
+//#if NETCOREAPP
 
             public System.Numerics.Matrix4x4 GetMatrix()
             {
@@ -370,7 +370,7 @@ namespace TM_Comms
                 };
             }
 
-#endif
+//#endif
 
             public PositionTypes Type { get; set; }
 
