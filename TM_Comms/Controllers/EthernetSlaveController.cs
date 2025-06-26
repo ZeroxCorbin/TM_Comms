@@ -11,11 +11,7 @@ namespace TM_Comms.Controllers
     {
         //private Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-        private AsyncSocket.ASocketManager Socket { get; } = new AsyncSocket.ASocketManager();
-
-        public SocketStates SocketState { get; set; }
-        public delegate void SocketStateEventDelegate(SocketStates state, string message);
-        public event SocketStateEventDelegate SocketStateEvent;
+        public AsyncSocket.ASocketManager Socket { get; } = new AsyncSocket.ASocketManager();
 
         public enum EsStates
         {
@@ -27,30 +23,21 @@ namespace TM_Comms.Controllers
         public delegate void EsStateEventDelegate(EsStates state, string message, EthernetSlave ethernetSlave);
         public event EsStateEventDelegate EsStateEvent;
 
-        public bool IsConnected => Socket.IsConnected;
-
         public EthernetSlaveController()
         {
-            Socket.CloseEvent += Socket_CloseEvent;
-            Socket.ConnectEvent += Socket_ConnectEvent;
-            Socket.ExceptionEvent += Socket_ExceptionEvent;
             Socket.MessageEvent += Socket_MessageEvent;
         }
 
         public void Connect(string ipAddress)
         {
-            if (Socket.IsConnected)
+            if (Socket.State == AsyncSocket.ASocketStates.Open)
             {
                 Socket.Close();
             }
             else
             {
-                SocketStateEvent?.Invoke(SocketStates.Trying, "Trying");
-                Task.Run(() =>
-                {
-                    if (!Socket.Connect(ipAddress, 5891))
-                        SocketStateEvent?.Invoke(SocketStates.Exception, "Unable to connect!");
-                });
+                Socket.Connect(ipAddress, 5891);
+                Socket.StartReceiveMessages(@"[$]", @"[*][A-Z0-9][A-Z0-9]");
             }
         }
 
@@ -65,27 +52,7 @@ namespace TM_Comms.Controllers
             Socket.Send(message);
         }
 
-        private void Socket_ExceptionEvent(object sender, EventArgs e)
-        {
-            //Logger.Error((Exception)sender);
-            SocketStateEvent?.Invoke(SocketStates.Exception, ((Exception)sender).Message);
-        }
-        private void Socket_ConnectEvent()
-        {
-            //Logger.Info($"Socket Open");
 
-            SocketState = SocketStates.Open;
-            SocketStateEvent?.Invoke(SocketStates.Open, "Open");
-
-            Socket.StartReceiveMessages(@"[$]", @"[*][A-Z0-9][A-Z0-9]");
-        }
-        private void Socket_CloseEvent()
-        {
-            //Logger.Info($"Socket Closed");
-
-            SocketState = SocketStates.Closed;
-            SocketStateEvent?.Invoke(SocketStates.Closed, "Close");
-        }
         private void Socket_MessageEvent(object sender, EventArgs e)
         {
             string message = (string)sender;

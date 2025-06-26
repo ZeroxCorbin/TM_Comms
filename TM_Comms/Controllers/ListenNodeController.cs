@@ -10,7 +10,7 @@ namespace TM_Comms.Controllers
     {
        // private Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-        private AsyncSocket.ASocketManager Socket { get; }
+        public AsyncSocket.ASocketManager Socket { get; }
 
         public enum LnStates
         {
@@ -18,23 +18,16 @@ namespace TM_Comms.Controllers
             Exception
         }
 
-        public SocketStates SocketState { get; set; }
-        public delegate void SocketStateEventDelegate(SocketStates state, string message);
-        public event SocketStateEventDelegate SocketStateEvent;
 
         public LnStates LnState { get; set; }
         public delegate void MessageEventDelegate(LnStates state, string message, ListenNode listenNode);
         public event MessageEventDelegate MessageEvent;
 
-        public bool IsConnected => Socket.IsConnected;
         public bool Retry { get; set; }
         public string IPAddress { get; set; }
         public ListenNodeController()
         {
             Socket = new AsyncSocket.ASocketManager();
-            Socket.CloseEvent += Socket_CloseEvent;
-            Socket.ConnectEvent += Socket_ConnectEvent;
-            Socket.ExceptionEvent += Socket_ExceptionEvent;
             Socket.MessageEvent += Socket_MessageEvent;
         }
 
@@ -43,19 +36,15 @@ namespace TM_Comms.Controllers
             IPAddress = iPAddress;
             Retry = retry;
 
-            if (Socket.IsConnected)
+            if (Socket.State == AsyncSocket.ASocketStates.Open)
             {
                 Retry = false;
                 Socket.Close();
             }
             else
             {
-                SocketStateEvent?.Invoke(SocketStates.Trying, "Trying");
-                Task.Run(() =>
-                {
-                    if (!Socket.Connect(IPAddress, 5890))
-                        SocketStateEvent?.Invoke(SocketStates.Exception, "Unable to connect!");
-                });
+                Socket.Connect(IPAddress, 5890);
+                Socket.StartReceiveMessages("\r\n");
             }
         }
 
@@ -71,26 +60,8 @@ namespace TM_Comms.Controllers
             Socket.Send(message);
         }
 
-        private void Socket_ExceptionEvent(object sender, EventArgs e)
-        {
-            //Logger.Error((Exception)sender);
-            SocketStateEvent?.Invoke(SocketStates.Exception, ((Exception)sender).Message);
-        }
-        private void Socket_ConnectEvent()
-        {
-            //Logger.Info($"Socket Open");
-
-            SocketState = SocketStates.Open;
-            SocketStateEvent?.Invoke(SocketStates.Open, "Open");
-
-            Socket.StartReceiveMessages("\r\n");
-        }
         private void Socket_CloseEvent()
         {
-            //Logger.Info($"Socket Closed");
-
-            SocketState = SocketStates.Closed;
-            SocketStateEvent?.Invoke(SocketStates.Closed, "Close");
 
             if (Retry)
                 Connect(IPAddress, Retry);

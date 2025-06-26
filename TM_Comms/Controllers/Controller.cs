@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,10 +51,10 @@ namespace TM_Comms.Controllers
             public string Script { get; set; }
         }
 
-        public bool IsEsReady { get => isEsReady && EthernetSlaveController.IsConnected; }
+        public bool IsEsReady { get => isEsReady && EthernetSlaveController.Socket.State == AsyncSocket.ASocketStates.Open; }
         private bool isEsReady = false;
 
-        public bool IsLnReady { get => ListenNodeController.IsConnected; }
+        public bool IsLnReady { get => ListenNodeController.Socket.State == AsyncSocket.ASocketStates.Open; }
 
         public bool IsReady => IsEsReady && IsLnReady;
 
@@ -138,7 +139,6 @@ namespace TM_Comms.Controllers
 
         public Controller()
         {
-            EthernetSlaveController.SocketStateEvent += EthernetSlaveController_SocketStateEvent;
             EthernetSlaveController.EsStateEvent += EthernetSlaveController_EsStateEvent;
 
             //ListenNodeController.SocketStateEvent += ListenNodeController_SocketStateEvent;
@@ -153,7 +153,6 @@ namespace TM_Comms.Controllers
             ToolsDirectory = toolsDirectory;
             BasesDirectory = basesDirectory;
 
-            EthernetSlaveController.SocketStateEvent += EthernetSlaveController_SocketStateEvent;
             EthernetSlaveController.EsStateEvent += EthernetSlaveController_EsStateEvent;
 
             //ListenNodeController.SocketStateEvent += ListenNodeController_SocketStateEvent;
@@ -168,7 +167,6 @@ namespace TM_Comms.Controllers
             ToolsDirectory = filesDirectory;
             BasesDirectory = filesDirectory;
 
-            EthernetSlaveController.SocketStateEvent += EthernetSlaveController_SocketStateEvent;
             EthernetSlaveController.EsStateEvent += EthernetSlaveController_EsStateEvent;
 
             //ListenNodeController.SocketStateEvent += ListenNodeController_SocketStateEvent;
