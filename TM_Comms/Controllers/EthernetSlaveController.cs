@@ -53,10 +53,8 @@ namespace TM_Comms.Controllers
         }
 
 
-        private void Socket_MessageEvent(object sender, EventArgs e)
+        private void Socket_MessageEvent(string message)
         {
-            string message = (string)sender;
-
             EthernetSlave es = new EthernetSlave();
 
             if (!es.ParseMessage(message))

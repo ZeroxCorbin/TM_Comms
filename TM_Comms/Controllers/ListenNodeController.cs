@@ -67,13 +67,13 @@ namespace TM_Comms.Controllers
                 Connect(IPAddress, Retry);
         }
 
-        private void Socket_MessageEvent(object sender, EventArgs e)
+        private void Socket_MessageEvent(string message)
         {
             var ln = new ListenNode();
-            if (ln.ParseMessage((string)sender))
+            if (ln.ParseMessage(message))
             {
                 //Logger.Debug($"<{ln.Message.Trim('\r', '\n')}");
-                Task.Run(() => MessageEvent?.Invoke(LnStates.Response, (string)sender, ln));
+                Task.Run(() => MessageEvent?.Invoke(LnStates.Response, message, ln));
             }
             //else
             //    Logger.Error($"<(BAD) {(string)sender}");
