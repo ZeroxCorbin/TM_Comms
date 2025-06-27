@@ -17,7 +17,6 @@ namespace TM_Comms.Controllers
         Exception
     }
 
-
     public class Controller
     {
         public delegate void RobotDataUpdatedDel();
