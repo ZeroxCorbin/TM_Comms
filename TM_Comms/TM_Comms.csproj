@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFrameworks>netstandard2.1;</TargetFrameworks>
+	  <TargetFrameworks>netstandard2.0;</TargetFrameworks>
     <UserSecretsId>dc98d62c-3792-4a7c-aff6-806d0b9329e6</UserSecretsId>
     <Platforms>AnyCPU;x64</Platforms>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
